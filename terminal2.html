@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BELLhop – Vstupní Terminál</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-dark: #003366;
+      --primary: #0055a5;
+      --accent: #00aaff;
+      --surface: #ffffff;
+      --bg: #f4f7fa;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    
+    .terminal-box { background: var(--surface); border-radius: 28px; padding: 2.5rem; max-width: 440px; width: 100%; box-shadow: 0 10px 25px rgba(0,51,102,0.15); border: 2px solid rgba(0,85,165,0.15); text-align: center; position: relative; overflow: hidden; }
+    .brand-title { font-size: 1.8rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 4px; }
+    .brand-title span { color: var(--accent); }
+    
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; margin-bottom: 10px; background: #d1fae5; color: #065f46; }
+
+    .pin-display { background: var(--bg); border: 2px solid #cbd5e1; border-radius: 16px; padding: 1rem; font-size: 2.8rem; font-weight: 800; letter-spacing: 14px; color: var(--primary-dark); margin: 1rem 0; min-height: 76px; display: flex; align-items: center; justify-content: center; }
+    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    
+    .key-btn { background: #f8fafc; border: 1px solid #cbd5e1; font-size: 1.8rem; font-weight: 700; color: var(--primary-dark); height: 72px; border-radius: 16px; cursor: pointer; user-select: none; }
+    .key-btn:active { transform: scale(0.95); background: var(--primary); color: white; }
+    .key-btn.clear { color: var(--danger); font-size: 1.2rem; }
+    .key-btn.submit { background: var(--primary); color: white; border: none; font-size: 1.3rem; }
+
+    /* Velké Oznámení o Odchodu Dítěte */
+    .leaving-screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, #003366, #0055a5);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      border-radius: 28px;
+      transform: translateY(100%);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 10;
+    }
+    .leaving-screen.active { transform: translateY(0); }
+    .leaving-icon { font-size: 4rem; margin-bottom: 1rem; animation: pulse 1.5s infinite; }
+    .leaving-text { font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem; text-align: center; }
+    .leaving-subtext { font-size: 1.1rem; opacity: 0.9; text-align: center; }
+    .leaving-countdown { font-size: 0.85rem; opacity: 0.7; margin-top: 1.5rem; }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--danger); color: white; padding: 1rem 1.5rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); font-weight: 700; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 100; }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div class="terminal-box">
+    <!-- Obrazovka po zadání PINu -->
+    <div id="leaving-screen" class="leaving-screen">
+      <div class="leaving-icon">🎒</div>
+      <div id="child-leaving-name" class="leaving-text">Jana Firtová odchází</div>
+      <div class="leaving-subtext">Požadavek byl odeslán vychovateli</div>
+      <div class="leaving-countdown">Obrazovka se obnoví za <span id="timer">5</span> s...</div>
+    </div>
+
+    <div class="brand-title">BELL<span>hop</span> Družina</div>
+    <div class="status-badge">● Systém připraven</div>
+    <p style="color: #64748b; font-size: 0.9rem;">Vyzvednutí žáka – Zadejte 4místný PIN</p>
+
+    <div id="pin-display" class="pin-display">••••</div>
+
+    <div class="keypad">
+      <button class="key-btn" onclick="pressKey('1')">1</button>
+      <button class="key-btn" onclick="pressKey('2')">2</button>
+      <button class="key-btn" onclick="pressKey('3')">3</button>
+      <button class="key-btn" onclick="pressKey('4')">4</button>
+      <button class="key-btn" onclick="pressKey('5')">5</button>
+      <button class="key-btn" onclick="pressKey('6')">6</button>
+      <button class="key-btn" onclick="pressKey('7')">7</button>
+      <button class="key-btn" onclick="pressKey('8')">8</button>
+      <button class="key-btn" onclick="pressKey('9')">9</button>
+      <button class="key-btn clear" onclick="clearPin()">C</button>
+      <button class="key-btn" onclick="pressKey('0')">0</button>
+      <button class="key-btn submit" onclick="submitPin()">✓ OK</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">⚠️ Zadejte správný PIN!</div>
+
+  <script>
+    let currentPin = "";
+    
+    function getStudents() {
+      const data = localStorage.getItem('bellhop_students');
+      return data ? JSON.parse(data) : [
+        { id: '1', childName: "Petr Novák", class: "1.A", parentName: "Jana Nováková", pin: "1234" },
+        { id: '2', childName: "Jana Firtová", class: "2.B", parentName: "Martin Firt", pin: "5678" }
+      ];
+    }
+
+    function pressKey(num) {
+      if (currentPin.length < 4) {
+        currentPin += num;
+        document.getElementById('pin-display').textContent = "•".repeat(currentPin.length);
+      }
+    }
+
+    function clearPin() {
+      currentPin = "";
+      document.getElementById('pin-display').textContent = "••••";
+    }
+
+    function submitPin() {
+      if (currentPin.length !== 4) {
+        showToast("⚠️ Zadejte 4místný PIN!");
+        return;
+      }
+
+      const students = getStudents();
+      const match = students.find(item => item.pin === currentPin);
+
+      if (match) {
+        const reqId = Date.now().toString();
+        const timeNow = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const newReq = {
+          id: reqId,
+          childName: match.childName,
+          class: match.class,
+          parentName: match.parentName,
+          time: timeNow,
+          status: 'pending'
+        };
+
+        // Uložení požadavku pro vychovatele
+        const requests = JSON.parse(localStorage.getItem('bellhop_requests') || '[]');
+        requests.unshift(newReq);
+        localStorage.setItem('bellhop_requests', JSON.stringify(requests));
+        window.dispatchEvent(new Event('storage'));
+
+        // Zobrazení obrazovky "Jana Firtová odchází"
+        showLeavingScreen(match.childName);
+        clearPin();
+      } else {
+        showToast("❌ Neplatný PIN kód!");
+        clearPin();
+      }
+    }
+
+    function showLeavingScreen(childName) {
+      const screen = document.getElementById('leaving-screen');
+      const nameEl = document.getElementById('child-leaving-name');
+      const timerEl = document.getElementById('timer');
+
+      nameEl.textContent = `${childName} odchází`;
+      screen.classList.add('active');
+
+      let timeLeft = 5;
+      timerEl.textContent = timeLeft;
+
+      const countdown = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(countdown);
+          screen.classList.remove('active');
+        }
+      }, 1000);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BELLhop – Panel Vychovatele</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-dark: #003366;
+      --primary: #0055a5;
+      --accent: #00aaff;
+      --surface: #ffffff;
+      --bg: #f4f7fa;
+      --text-muted: #64748b;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 10px 25px rgba(0,51,102,0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; }
+
+    header { background: linear-gradient(135deg, #002244, #0055a5); color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .brand { font-size: 1.5rem; font-weight: 800; }
+    .brand span { color: var(--accent); }
+
+    main { flex: 1; padding: 2rem; max-width: 1400px; margin: 0 auto; width: 100%; }
+    
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 1.5rem; border-bottom: 2px solid #cbd5e1; padding-bottom: 10px; }
+    .tab-btn { background: #e2e8f0; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+    .tab-btn.active { background: var(--primary); color: white; }
+
+    .card { background: var(--surface); border-radius: 18px; padding: 1.5rem; box-shadow: var(--shadow); margin-bottom: 1.5rem; }
+    .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+
+    .request-card { background: var(--surface); border-radius: 18px; padding: 1.5rem; box-shadow: var(--shadow); border-left: 6px solid var(--warning); }
+    .request-card.notified { border-left-color: var(--primary); }
+    .request-card.done { border-left-color: var(--success); opacity: 0.5; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+    th { background: #f8fafc; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; }
+
+    .form-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1rem; }
+    .input-field { padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; flex: 1; min-width: 150px; }
+    .btn-add { background: var(--success); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">BELL<span>hop</span> Družina – Panel Vychovatele</div>
+  </header>
+
+  <main>
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('queue')">📢 Čekající Rodiče</button>
+      <button class="tab-btn" onclick="switchTab('classbook')">📖 Třídní Kniha</button>
+      <button class="tab-btn" onclick="switchTab('attendance')">📋 Kompletní Docházka</button>
+      <button class="tab-btn" onclick="switchTab('students')">⚙️ Správa Žáků & PINů</button>
+    </div>
+
+    <!-- ZÁLOŽKA 1: ČEKAJÍCÍ RODIČE -->
+    <div id="tab-queue" class="tab-content">
+      <h2>Živé požadavky z tabletu před školou</h2>
+      <br>
+      <div id="queue-container" class="grid-cards"></div>
+    </div>
+
+    <!-- ZÁLOŽKA 2: TŘÍDNÍ KNIHA -->
+    <div id="tab-classbook" class="tab-content" style="display:none;">
+      <div class="card">
+        <h2>📖 Třídní kniha družiny</h2>
+        <br>
+        <div class="form-group">
+          <input type="text" id="book-activity" class="input-field" placeholder="Popis činnosti (např. Vycházka v parku, Hry v tělocvične)">
+          <button class="btn-add" onclick="addClassbookEntry()">Uložit zápis</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Náplň činnosti</th>
+              <th>Vychovatel</th>
+            </tr>
+          </thead>
+          <tbody id="classbook-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ZÁLOŽKA 3: DOCHÁZKA -->
+    <div id="tab-attendance" class="tab-content" style="display:none;">
+      <div class="card">
+        <h2>📋 Přehled vyzvedávání</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Čas</th>
+              <th>Jméno Žáka</th>
+              <th>Třída</th>
+              <th>Rodič</th>
+              <th>Stav</th>
+            </tr>
+          </thead>
+          <tbody id="attendance-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ZÁLOŽKA 4: SPRÁVA ŽÁKŮ A PINŮ -->
+    <div id="tab-students" class="tab-content" style="display:none;">
+      <div class="card">
+        <h2>⚙️ Přidat nového žáka a PIN kód</h2>
+        <br>
+        <div class="form-group">
+          <input type="text" id="new-child" class="input-field" placeholder="Jméno a Příjmení Žáka">
+          <input type="text" id="new-class" class="input-field" placeholder="Třída (např. 1.A)">
+          <input type="text" id="new-parent" class="input-field" placeholder="Jméno Rodiče">
+          <input type="text" id="new-pin" class="input-field" placeholder="Vlastní 4místný PIN" maxlength="4">
+          <button class="btn-add" onclick="addStudent()">+ Přidat Žáka</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Seznam žáků v databázi</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Jméno Žáka</th>
+              <th>Třída</th>
+              <th>Rodič</th>
+              <th>PIN kód</th>
+              <th>Akce</th>
+            </tr>
+          </thead>
+          <tbody id="students-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const defaultStudents = [
+      { id: '1', childName: "Petr Novák", class: "1.A", parentName: "Jana Nováková", pin: "1234" },
+      { id: '2', childName: "Jana Firtová", class: "2.B", parentName: "Martin Firt", pin: "5678" }
+    ];
+
+    function getStudents() {
+      const data = localStorage.getItem('bellhop_students');
+      return data ? JSON.parse(data) : defaultStudents;
+    }
+
+    function saveStudents(data) {
+      localStorage.setItem('bellhop_students', JSON.stringify(data));
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    function getRequests() {
+      return JSON.parse(localStorage.getItem('bellhop_requests') || '[]');
+    }
+
+    function saveRequests(data) {
+      localStorage.setItem('bellhop_requests', JSON.stringify(data));
+      window.dispatchEvent(new Event('storage'));
+    }
+
+    function getClassbook() {
+      return JSON.parse(localStorage.getItem('bellhop_classbook') || '[]');
+    }
+
+    function playBellSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.8);
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.8);
+      } catch (e) {}
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(`tab-${tab}`).style.display = 'block';
+      event.target.classList.add('active');
+    }
+
+    function renderViews() {
+      const students = getStudents();
+      const activeRequests = getRequests();
+      const classbookEntries = getClassbook();
+
+      // 1. Čekající rodiče
+      const qContainer = document.getElementById('queue-container');
+      if (activeRequests.length === 0) {
+        qContainer.innerHTML = `<p style="color:var(--text-muted)">V tuto chvíli nikdo nečeká u vchodu.</p>`;
+      } else {
+        qContainer.innerHTML = activeRequests.map(req => `
+          <div class="request-card ${req.status}">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+              <strong style="font-size:1.2rem; color:var(--primary-dark);">${req.childName}</strong>
+              <span style="background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px; font-weight:700;">${req.class}</span>
+            </div>
+            <p style="color:var(--text-muted); font-size:0.95rem;">👤 Čeká: <strong>${req.parentName}</strong></p>
+            <p style="color:#94a3b8; font-size:0.8rem; margin-top:4px;">🕒 Čas: ${req.time}</p>
+            <br>
+            <div>
+              ${req.status === 'pending' ? `<button class="btn-add" style="background:var(--warning); width:100%;" onclick="changeStatus('${req.id}', 'notified')">📢 Poslat dítě dolů</button>` : ''}
+              ${req.status === 'notified' ? `<button class="btn-add" style="background:var(--success); width:100%;" onclick="changeStatus('${req.id}', 'done')">✓ Potvrdit odchod</button>` : ''}
+              ${req.status === 'done' ? `<span style="color:var(--success); font-weight:700;">✓ Dítě odešlo</span>` : ''}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // 2. Třídní kniha
+      document.getElementById('classbook-table-body').innerHTML = classbookEntries.map(e => `
+        <tr>
+          <td>${e.date}</td>
+          <td><strong>${e.activity}</strong></td>
+          <td>${e.teacher}</td>
+        </tr>
+      `).join('');
+
+      // 3. Docházka
+      document.getElementById('attendance-table-body').innerHTML = activeRequests.map(l => `
+        <tr>
+          <td>${l.time}</td>
+          <td><strong>${l.childName}</strong></td>
+          <td>${l.class}</td>
+          <td>${l.parentName}</td>
+          <td>${l.status === 'pending' ? 'Čeká u vchodu' : (l.status === 'notified' ? 'Jde dolů' : 'Odešlo')}</td>
+        </tr>
+      `).join('');
+
+      // 4. Správa žáků
+      document.getElementById('students-table-body').innerHTML = students.map(s => `
+        <tr>
+          <td><strong>${s.childName}</strong></td>
+          <td>${s.class}</td>
+          <td>${s.parentName}</td>
+          <td><code style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-weight:700;">${s.pin}</code></td>
+          <td><button style="color:var(--danger); border:none; background:none; cursor:pointer; font-weight:700;" onclick="deleteStudent('${s.id}')">Smazat</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function changeStatus(id, newStatus) {
+      const requests = getRequests();
+      const req = requests.find(r => r.id === id);
+      if (req) {
+        req.status = newStatus;
+        saveRequests(requests);
+      }
+    }
+
+    function addStudent() {
+      const name = document.getElementById('new-child').value.trim();
+      const cls = document.getElementById('new-class').value.trim();
+      const parent = document.getElementById('new-parent').value.trim();
+      const pin = document.getElementById('new-pin').value.trim();
+
+      if (!name || !cls || !parent || pin.length !== 4) {
+        alert("Vyplňte prosím všechny údaje a přesně 4místný PIN kód!");
+        return;
+      }
+
+      const students = getStudents();
+      const newStudent = {
+        id: Date.now().toString(),
+        childName: name,
+        class: cls,
+        parentName: parent,
+        pin: pin
+      };
+
+      students.push(newStudent);
+      saveStudents(students);
+
+      document.getElementById('new-child').value = '';
+      document.getElementById('new-class').value = '';
+      document.getElementById('new-parent').value = '';
+      document.getElementById('new-pin').value = '';
+
+      alert(`✅ Žák ${name} byl úspěšně přidán s PINem ${pin}!`);
+    }
+
+    function deleteStudent(id) {
+      if (confirm("Opravdu chcete tohoto žáka smazat?")) {
+        let students = getStudents();
+        students = students.filter(s => s.id !== id);
+        saveStudents(students);
+      }
+    }
+
+    function addClassbookEntry() {
+      const act = document.getElementById('book-activity').value.trim();
+      if (!act) return;
+      
+      const entries = getClassbook();
+      entries.unshift({
+        date: new Date().toLocaleDateString('cs-CZ'),
+        activity: act,
+        teacher: "Vychovatelka"
+      });
+      localStorage.setItem('bellhop_classbook', JSON.stringify(entries));
+      document.getElementById('book-activity').value = '';
+      renderViews();
+    }
+
+    window.addEventListener('storage', () => {
+      renderViews();
+      playBellSound();
+    });
+
+    renderViews();
+  </script>
+</body>
+</html>
